@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
 
 // Type définissant une instance du problème TSP
@@ -105,18 +106,29 @@ knapsack_t create_instance(unsigned long int n, unsigned long int cap,
 
 int main(void) {
     srand(time(NULL));
+    srand(2026); 
 
-    knapsack_t problem = create_instance(50, 5000, 14, 0.3, 1e-5, 100);
+    knapsack_t problem = create_instance(120, 100000, 4, 0.5, 0.1, 100);
 
-    unsigned int *solution = malloc(problem.nbr * sizeof(unsigned int)); 
+    unsigned int *solutionGreedy1 = greedy1(problem); 
+    unsigned int *solutionGreedy2 = greedy2(problem); 
+    unsigned int *solutionGreedy3 = greedy3(problem); 
+
 
     // TODO
     printf("Le nombre total d'objets : %ld\n", problem.nbr); 
     printf("Capacité du sac à dos : %.2f\n", problem.capacity); 
     printf("La valeur totale des objets disponibles : %.2f\n", valeur_totale(problem)); 
     printf("Le poids total des objets disponibles : %.2f\n", poids_total(problem));
+
+    printf("Valeur de greedy 1 : %.2f\n", valeur(problem, solutionGreedy1));
+    printf("Valeur de greedy 2 : %.2f\n", valeur(problem, solutionGreedy2)); 
+    printf("Valeur de greedy 3 : %.2f\n", valeur(problem, solutionGreedy3)); 
+
     
-    free(solution); 
+    free(solutionGreedy1); 
+    free(solutionGreedy2); 
+    free(solutionGreedy3); 
 
     return 0; 
 }
@@ -155,11 +167,105 @@ void tri_insertion(double tab[], int taille) {
 
 unsigned int * greedy1(knapsack_t p) {
 
+    unsigned int *items = malloc(p.nbr * sizeof(unsigned int)); 
     unsigned int *solution = malloc(p.nbr * sizeof(unsigned int)); 
+    unsigned int n = p.nbr; //valeur sentinelle
 
-    //copie du tableau initial
-    double values_cp[p.nbr]; 
-    memcpy(values_cp, p.values, p.nbr * sizeof(double)); 
+    for (int i = 0; i < p.nbr; i++) items[i] = i; 
+    //tri insertion
+    for (int i = 1; i < p.nbr; i++) {
+        unsigned int x = items[i]; 
 
-    tri_insertion(values_cp, p.nbr); 
+        //decaler vers la gauche tant que p.values[i] > p.values
+        int j = i; 
+        while ((j > 0) && (p.values[items[j-1]] < p.values[items[j]])) {
+            items[j] = items[j-1]; 
+            j--; 
+        }
+        items[j] = x; 
+    }
+
+    double w = 0; 
+    int c = 0; 
+    for (int i = 0; i < p.nbr; i++) {
+       if ((w+p.weights[items[i]] < p.capacity)) {
+        solution[c] = items[i]; 
+        w += p.weights[items[i]]; 
+        c++; 
+       }
+    }
+
+    if (c < n) solution[c] = n; 
+    free(items); 
+    return solution; 
+    
+}
+
+unsigned int * greedy2(knapsack_t p) {
+    unsigned int *items = malloc(p.nbr * sizeof(unsigned int)); 
+    unsigned int *solution = malloc(p.nbr * sizeof(unsigned int)); 
+    unsigned int n = p.nbr; //valeur sentinelle
+
+    for (int i = 0; i < p.nbr; i++) items[i] = i; 
+    //tri insertion
+    for (int i = 1; i < p.nbr; i++) {
+        unsigned int x = items[i]; 
+
+        //decaler vers la gauche tant que p.values[i] < p.values
+        int j = i; 
+        while ((j > 0) && (p.values[items[j-1]] > p.values[items[j]])) {
+            items[j] = items[j-1]; 
+            j--; 
+        }
+        items[j] = x; 
+    }
+
+    double w = 0; 
+    int c = 0; 
+    for (int i = 0; i < p.nbr; i++) {
+       if ((w+p.weights[items[i]] < p.capacity)) {
+        solution[c] = items[i]; 
+        w += p.weights[items[i]]; 
+        c++; 
+       }
+    }
+
+    if (c < n) solution[c] = n; 
+    free(items); 
+    return solution; 
+    
+}
+
+unsigned int * greedy3(knapsack_t p) {
+    unsigned int *items = malloc(p.nbr * sizeof(unsigned int)); 
+    unsigned int *solution = malloc(p.nbr * sizeof(unsigned int)); 
+    unsigned int n = p.nbr; //valeur sentinelle
+
+    for (int i = 0; i < p.nbr; i++) items[i] = i; 
+    //tri insertion
+    for (int i = 1; i < p.nbr; i++) {
+        unsigned int x = items[i]; 
+
+        //decaler vers la gauche 
+        int j = i; 
+        while ((j > 0) && ((p.values[items[j-1]]/p.weights[items[j-1]]) < (p.values[items[j]]/p.weights[items[j-1]]))) {
+            items[j] = items[j-1]; 
+            j--; 
+        }
+        items[j] = x; 
+    }
+
+    double w = 0; 
+    int c = 0; 
+    for (int i = 0; i < p.nbr; i++) {
+       if ((w+p.weights[items[i]] < p.capacity)) {
+        solution[c] = items[i]; 
+        w += p.weights[items[i]]; 
+        c++; 
+       }
+    }
+
+    if (c < n) solution[c] = n; 
+    free(items); 
+    return solution; 
 }
