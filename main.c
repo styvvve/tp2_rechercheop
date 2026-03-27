@@ -4,6 +4,7 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
 
 // Type définissant une instance du problème TSP
@@ -59,6 +60,16 @@ double poids_total(knapsack_t p) {
     return poids; 
 }
 
+double poids_obj_sac(knapsack_t p, unsigned int *solution, int taille) {
+    double poids = 0.0; 
+
+    for (int i = 0; i < taille; i++) {
+        poids += p.weights[solution[i]]; 
+    }
+
+    return poids; 
+}
+
 
 
 
@@ -106,7 +117,7 @@ knapsack_t create_instance(unsigned long int n, unsigned long int cap,
 
 int main(void) {
     srand(time(NULL));
-    srand(2026); 
+    srand(2004); 
 
     knapsack_t problem = create_instance(120, 100000, 4, 0.5, 0.1, 100);
 
@@ -269,3 +280,51 @@ unsigned int * greedy3(knapsack_t p) {
     free(items); 
     return solution; 
 }
+
+bool elt_present_sac(unsigned int elt, unsigned int* slt, int taille) {
+    for (int i = 0; i < taille; i++) {
+        if (slt[i] == elt) return true; 
+        else continue; 
+    }
+
+    return false; 
+}
+
+//fonction qui va prendre un elt ds le sac et le decaler vers la gauche jusqu'à la position voulue
+void super_swap_left(unsigned int elt, unsigned int *solution) {
+
+}
+
+
+/*
+– le cambrioleur sélectionne un objet qu’il n’a pas encore mis dans son sac ;
+– tant qu’il ne reste pas assez de place dans le sac pour y mettre l’objet sélectionné, on
+retire successivement des objets au hasard ;
+– dès qu’il y a suffisamment de place dans le sac, on y met l’objet sélectionné ;
+– si la nouvelle valeur totale ainsi obtenue est inférieure à la valeur initiale du début de
+l’étape, on rétablit la sélection précédente (sinon on poursuit avec ce nouveau choix).
+ */
+/*unsigned int * eager_thief(knapsack_t p, int nsteps) {
+    unsigned int * solution = malloc(p.nbr * sizeof(unsigned int)); 
+    unsigned int *deja_vus = malloc(p.nbr * sizeof(unsigned int));
+    int nb_obj = 0; 
+
+    for (int i = 0; i < p.nbr; i++) solution[i] = i; 
+    for (int i = 0; i < p.nbr; i++) deja_vus[i] = 0; 
+    int elt_deja_vus = 0; 
+
+    for (int i = 0; i < nsteps; i++) {
+
+        unsigned int elt_selectionne = solution[0]; //au hasard
+
+        for (int j = 0; j < p.nbr; j++) {
+            if ((!(elt_present_sac(solution[j], solution, nb_obj))) && p.capacity > (poids_obj_sac(p, solution, nb_obj)+p.weights[j]) && !elt_present_sac(solution[j])) {
+                elt_selectionne = solution[j]; 
+                deja_vus[elt_deja_vus] = solution[j]; 
+                elt_deja_vus++; 
+
+            }
+        }
+    }
+    
+}*/
