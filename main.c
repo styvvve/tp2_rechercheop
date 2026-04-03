@@ -124,22 +124,26 @@ int main(void) {
     unsigned int *solutionGreedy1 = greedy1(problem); 
     unsigned int *solutionGreedy2 = greedy2(problem); 
     unsigned int *solutionGreedy3 = greedy3(problem); 
+    unsigned int *solutionEagerThief = eager_thief(problem, 1000); 
 
 
     // TODO
-    printf("Le nombre total d'objets : %ld\n", problem.nbr); 
-    printf("Capacité du sac à dos : %.2f\n", problem.capacity); 
-    printf("La valeur totale des objets disponibles : %.2f\n", valeur_totale(problem)); 
-    printf("Le poids total des objets disponibles : %.2f\n", poids_total(problem));
+    printf("Données du pb :\n"); 
+    printf("    Le nombre d'objets : %ld\n", problem.nbr); 
+    printf("    Capacité du sac à dos : %.2f\n", problem.capacity); 
+    printf("    La valeur totale des objets disponibles : %.2f\n", valeur_totale(problem)); 
+    printf("    Le poids total des objets disponibles : %.2f\n", poids_total(problem));
 
     printf("Valeur de greedy 1 : %.2f\n", valeur(problem, solutionGreedy1));
     printf("Valeur de greedy 2 : %.2f\n", valeur(problem, solutionGreedy2)); 
     printf("Valeur de greedy 3 : %.2f\n", valeur(problem, solutionGreedy3)); 
+    printf("Valeur du voleur pressé : %.2f\n", valeur(problem, solutionEagerThief)); 
 
     
     free(solutionGreedy1); 
     free(solutionGreedy2); 
     free(solutionGreedy3); 
+    free(solutionEagerThief);
 
     return 0; 
 }
@@ -304,8 +308,8 @@ retire successivement des objets au hasard ;
 – si la nouvelle valeur totale ainsi obtenue est inférieure à la valeur initiale du début de
 l’étape, on rétablit la sélection précédente (sinon on poursuit avec ce nouveau choix).
  */
-/*unsigned int * eager_thief(knapsack_t p, int nsteps) {
-    unsigned int * solution = malloc(p.nbr * sizeof(unsigned int)); 
+unsigned int * eager_thief(knapsack_t p, int nsteps) {
+    /*unsigned int * solution = malloc(p.nbr * sizeof(unsigned int)); 
     unsigned int *deja_vus = malloc(p.nbr * sizeof(unsigned int));
     int nb_obj = 0; 
 
@@ -325,6 +329,133 @@ l’étape, on rétablit la sélection précédente (sinon on poursuit avec ce n
 
             }
         }
-    }
+    }*/
+
+    unsigned int n = p.nbr; 
+    double cap = p.capacity; 
+    unsigned int *solution = malloc(n * sizeof(unsigned int)); 
     
-}*/
+    for (int i=0; i <n; i++) solution[i] = i; 
+    int c = 0; 
+    double w = 0; 
+    double v = 0; 
+
+    for (int k = 0; k < nsteps; k++) {
+        int dispo = n - c; 
+        int r = rand() % dispo; //un objet disponible
+        int i = c + r; //indice choisi (decalage)
+
+        int c0 = c; 
+        double w0 = w; 
+        double v0 = v; 
+        while (w + p.weights[solution[i]] > cap) {
+            int j = rand() % c; 
+
+            w -= p.weights[solution[j]]; 
+            v -= p.values[solution[j]]; 
+            int swap = solution[c-1]; 
+            solution[c-1] = solution[j]; 
+            solution[j] = swap; 
+            c--; 
+        }
+        if (v + p.values[solution[i]] > v0) {
+            v += p.values[solution[i]]; 
+            w += p.weights[solution[i]]; 
+            int swap = solution[i]; 
+            solution[i] = solution[c]; 
+            solution[c] = swap; 
+            c++; 
+        } else {
+            v = v0; w = w0; c = c0; 
+        }
+    }
+
+    return solution; 
+}
+
+double valeur_sac(knapsack_t p, unsigned int *solution, unsigned int sentinelle) {
+    int i = 0; 
+    double total = 0.; 
+    while (solution[i] != sentinelle) {
+        total += p.values[solution[i]]; 
+    }
+
+    return total; 
+}
+
+unsigned int * recuit(knapsack_t p, double temp, double seuil, double loi) {
+    unsigned int n = p.nbr; 
+    double cap = p.capacity; 
+    unsigned int *solution = malloc(n * sizeof(unsigned int)); 
+    unsigned int *meilleure_solution = malloc(n * sizeof(unsigned int)); 
+    
+    for (int i=0; i <n; i++) solution[i] = i; 
+    memcpy(meilleure_solution, solution, n * sizeof(unsigned int)); 
+
+    int c = 0; 
+    double w = 0; 
+    double v = 0; 
+
+    int c_best = c; 
+
+    while (temp > seuil) {
+
+        memcpy(solution, meilleure_solution, n * sizeof(unsigned int)); 
+
+        int dispo = n - c; 
+        int r = rand() % dispo; //un objet disponible
+        int i = c + r; //indice choisi (decalage)
+
+        int c0 = c; 
+        double w0 = w; 
+        double v0 = v; 
+        while (w + p.weights[solution[i]] > cap) {
+            int j = rand() % c; 
+
+            w -= p.weights[solution[j]]; 
+            v -= p.values[solution[j]]; 
+            int swap = solution[c-1]; 
+            solution[c-1] = solution[j]; 
+            solution[j] = swap; 
+            c--; 
+        }
+
+        double deltaE = valeur_sac(p, solution, solution[c]) - valeur_sac(p, meilleure_solution, c_best); 
+        double prob = exp(-deltaE/temp); 
+        double alea = (double)rand() / RAND_MAX; 
+
+        if (v + p.values[solution[i]] > v0) {
+            
+            //conserve si améliore le resultat
+
+            v += p.values[solution[i]]; 
+            w += p.weights[solution[i]]; 
+            int swap = solution[i]; 
+            solution[i] = solution[c]; 
+            solution[c] = swap; 
+            memcpy(meilleure_solution, solution, n * sizeof(unsigned int));
+            c_best++; 
+            c++; 
+        } else {
+
+            if (alea < prob) {
+                v += p.values[solution[i]]; 
+                w += p.weights[solution[i]]; 
+                int swap = solution[i]; 
+                solution[i] = solution[c]; 
+                solution[c] = swap; 
+                memcpy(meilleure_solution, solution, n * sizeof(unsigned int));
+                c_best++; 
+                c++; 
+            }
+            v = v0; w = w0; c = c0; 
+        }
+
+        temp *= loi; 
+    }
+
+    if (c < n) solution[c] = n; //valeur sentinelle
+
+    return solution; 
+}
+
